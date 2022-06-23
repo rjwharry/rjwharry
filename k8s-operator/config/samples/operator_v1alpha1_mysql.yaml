@@ -1,0 +1,6 @@
+apiVersion: operator.example.com/v1alpha1
+kind: Mysql
+metadata:
+  name: mysql-sample
+spec:
+  # TODO(user): Add fields here
