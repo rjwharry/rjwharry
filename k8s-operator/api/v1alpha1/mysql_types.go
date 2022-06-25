@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,11 +25,10 @@ import (
 
 // MysqlSpec defines the desired state of Mysql
 type MysqlSpec struct {
-	Template MysqlTemplateSpec `json:"spec,omitempty"`
-}
-
-type MysqlTemplateSpec struct {
-	Spec corev1.PodSpec `json:"spec,omitempty"`
+	RootPassword string `json:"rootPassword"`
+	Image        string `json:"image"`
+	Replicas     int32  `json:"replicas"`
+	DataPvcName  string `json:"dataPvcName"`
 }
 
 // MysqlStatus defines the observed state of Mysql

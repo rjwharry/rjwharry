@@ -3,4 +3,7 @@ kind: Mysql
 metadata:
   name: mysql-sample
 spec:
-  # TODO(user): Add fields here
+  rootPassword: root
+  image: mysql:5.6
+  replicas: 1
+  dataPvcName: data
