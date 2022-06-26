@@ -12,23 +12,38 @@
 사전에 쿠버네티스 클러스터를 준비해주세요. mac과 window는 docker-desktop을, linux는 on-premise, minikube, kind 등의 방법으로 클러스터를 생성합니다.
 
 ### Running on the cluster
+1. Build and push your image to the location specified by `IMG`:
+	
+    ```bash
+    make docker-build docker-push IMG=<some-registry>/k8s-operator:tag
+    ```
+	
+1. Deploy the controller to the cluster with the image specified by `IMG`:
+
+    ```bash
+    make deploy IMG=<some-registry>/k8s-operator:tag
+    ```
+1. Define & Install CustomResourceDefinition on Kubernetes Cluster:  
+    ```bash
+    make generate
+    make install
+    ```
+1. Define RBAC
+    ```bash
+    make manifests
+    ```
+
+1. Deploy controller to the cluster:
+    ```bash
+    make deploy
+    ```
+
 1. Install Instances of Custom Resources:
 
-```sh
-kubectl apply -f config/samples/
-```
+    ```bash
+    kubectl apply -f config/samples/sample.yaml
+    ```
 
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/k8s-operator:tag
-```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
-
-```sh
-make deploy IMG=<some-registry>/k8s-operator:tag
-```
 
 ### Uninstall CRDs
 To delete the CRDs from the cluster:
@@ -53,15 +68,15 @@ which provides a reconcile function responsible for synchronizing resources unti
 ### Test It Out
 1. Install the CRDs into the cluster:
 
-```sh
-make install
-```
+    ```bash
+    make install
+    ```
 
 2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
 
-```sh
-make run
-```
+    ```bash
+    make run
+    ```
 
 **NOTE:** You can also run this in one step by running: `make install run`
 
