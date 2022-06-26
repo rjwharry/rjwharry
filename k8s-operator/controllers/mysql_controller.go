@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -89,7 +90,21 @@ func (r *MysqlReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, err
 		}
 		if isExists { // update
-
+			originalSts := &appsv1.StatefulSet{}
+			err := r.Get(ctx, req.NamespacedName, originalSts)
+			if err != nil {
+				log.Log.Error(err, fmt.Sprintf("Failed to find %s statefulets", reqMysql.Name))
+				return ctrl.Result{}, err
+			}
+			replicas := originalSts.Spec.Replicas
+			if *replicas != reqMysql.Spec.Replicas {
+				*replicas = reqMysql.Spec.Replicas
+			}
+			err = r.Update(ctx, originalSts)
+			if err != nil {
+				log.Log.Error(err, "Something wrong when updating statefulsets")
+				return ctrl.Result{}, err
+			}
 		} else { // create
 			err := r.createSecret(ctx, reqMysql)
 			if err != nil {
@@ -110,6 +125,27 @@ func (r *MysqlReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 func (r *MysqlReconciler) createSecret(ctx context.Context, reqMysql *operatorv1alpha1.Mysql) error {
+	secret := getSecretObject(*reqMysql)
+	controllerutil.SetControllerReference(reqMysql, &secret, r.Scheme)
+	err := r.Create(ctx, &secret)
+	return err
+}
+
+func (r *MysqlReconciler) createSts(ctx context.Context, reqMysql *operatorv1alpha1.Mysql) error {
+	sts := getStsObject(*reqMysql)
+	controllerutil.SetControllerReference(reqMysql, &sts, r.Scheme)
+	err := r.Create(ctx, &sts)
+	return err
+}
+
+func (r *MysqlReconciler) createService(ctx context.Context, reqMysql *operatorv1alpha1.Mysql) error {
+	svc := getServiceObject(*reqMysql)
+	controllerutil.SetControllerReference(reqMysql, &svc, r.Scheme)
+	err := r.Create(ctx, &svc)
+	return err
+}
+
+func getSecretObject(reqMysql operatorv1alpha1.Mysql) corev1.Secret {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      reqMysql.Name,
@@ -120,12 +156,10 @@ func (r *MysqlReconciler) createSecret(ctx context.Context, reqMysql *operatorv1
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
-	controllerutil.SetControllerReference(reqMysql, secret, r.Scheme)
-	err := r.Create(ctx, secret)
-	return err
+	return *secret
 }
 
-func (r *MysqlReconciler) createSts(ctx context.Context, reqMysql *operatorv1alpha1.Mysql) error {
+func getStsObject(reqMysql operatorv1alpha1.Mysql) appsv1.StatefulSet {
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      reqMysql.Name,
@@ -198,12 +232,10 @@ func (r *MysqlReconciler) createSts(ctx context.Context, reqMysql *operatorv1alp
 			},
 		},
 	}
-	controllerutil.SetControllerReference(reqMysql, sts, r.Scheme)
-	err := r.Create(ctx, sts)
-	return err
+	return *sts
 }
 
-func (r *MysqlReconciler) createService(ctx context.Context, reqMysql *operatorv1alpha1.Mysql) error {
+func getServiceObject(reqMysql operatorv1alpha1.Mysql) corev1.Service {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      reqMysql.Name,
@@ -221,9 +253,7 @@ func (r *MysqlReconciler) createService(ctx context.Context, reqMysql *operatorv
 			},
 		},
 	}
-	controllerutil.SetControllerReference(reqMysql, svc, r.Scheme)
-	err := r.Create(ctx, svc)
-	return err
+	return *svc
 }
 
 func (r *MysqlReconciler) isExists(ctx context.Context, reqMysql operatorv1alpha1.Mysql) (bool, error) {
